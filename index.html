@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Câmbio — Painel de Cotações</title>
+
+<!-- CSP: troque SEU-PROJETO pelo ref do seu projeto Supabase (ex: abcdxyz.supabase.co) -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+  font-src 'self' https://fonts.gstatic.com;
+  img-src 'self' data: https:;
+  connect-src 'self' https://SEU-PROJETO.supabase.co wss://SEU-PROJETO.supabase.co;
+">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">C</span> Câmbio</div>
+    <div class="nav-section">Menu</div>
+    <a class="nav-item active" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Painel
+    </a>
+    <div class="sidebar-foot">
+      <div class="badge live"><span class="dot"></span> Webhook ativo</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Painel de Cotações</h1>
+        <div class="sub" id="sub-date">Carregando…</div>
+      </div>
+      <div class="status-cluster">
+        <div class="badge live" id="badge-conn"><span class="dot"></span> n8n conectado</div>
+        <div class="badge" id="badge-last">Última atualização · --:--</div>
+        <button class="btn-refresh" id="btn-refresh" title="Atualizar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="schedule" id="schedule">
+      <span class="label lbl">Programação do dia</span>
+    </div>
+
+    <!-- estados -->
+    <div class="state" id="state-loading">
+      <div class="spinner"></div>
+      <p>Carregando cotações…</p>
+    </div>
+
+    <div class="state" id="state-empty" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg>
+      <p class="state-title">Aguardando o primeiro envio do n8n</p>
+      <p class="state-sub">Quando o fluxo rodar no próximo horário, as cotações aparecem aqui.</p>
+    </div>
+
+    <div class="state" id="state-error" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <p class="state-title">Não foi possível carregar</p>
+      <p class="state-sub">Verifique a conexão e tente atualizar.</p>
+    </div>
+
+    <!-- conteúdo -->
+    <div id="content" hidden>
+      <div class="cards" id="cards"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Cotações por horário</h2>
+          <span class="label" id="panel-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footnote">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span id="footnote-text">Atualizações automáticas via n8n</span>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
