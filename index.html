@@ -5,20 +5,118 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Câmbio — Painel de Cotações</title>
 
-<!-- CSP: troque SEU-PROJETO pelo ref do seu projeto Supabase (ex: abcdxyz.supabase.co) -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
   style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
   font-src 'self' https://fonts.gstatic.com;
   img-src 'self' data: https:;
-  connect-src 'self' https://SEU-PROJETO.supabase.co wss://SEU-PROJETO.supabase.co;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co;
 ">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css">
+
+<style>
+:root{
+  --font-ui:"Inter",system-ui,-apple-system,sans-serif;
+  --font-display:"Bricolage Grotesque","Inter",sans-serif;
+  --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px;
+  --fs-lg:20px; --fs-xl:28px; --fs-2xl:40px;
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-pill:999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
+}
+:root[data-theme="dark"]{
+  --bg:#0E1116; --surface:#161B22; --surface-2:#1C232C;
+  --navy-deep:#141E30; --navy-mid:#35577D; --border:#232A33;
+  --text:#E8EBEF; --text-muted:#8B95A3; --text-faint:#5B6573;
+  --accent:#FF6B35; --accent-2:#FF8C42; --accent-grad:linear-gradient(135deg,#FF6B35,#FF8C42); --on-accent:#FFFFFF;
+  --ok:#3FB950; --warn:#D29922; --err:#F85149; --info:#58A6FF;
+  --shadow-card:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:var(--font-ui); font-size:var(--fs-base); line-height:1.5; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased;}
+.label{font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted);}
+.layout{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
+.sidebar{background:var(--surface); border-right:1px solid var(--border); padding:var(--sp-5) var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-1);}
+.brand{display:flex; align-items:center; gap:var(--sp-3); font-family:var(--font-display); font-size:var(--fs-md); font-weight:700; padding:var(--sp-2) var(--sp-3); margin-bottom:var(--sp-4);}
+.brand .logo{width:30px; height:30px; border-radius:var(--r-sm); background:var(--accent-grad); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-family:var(--font-display);}
+.nav-section{font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint); padding:var(--sp-4) var(--sp-3) var(--sp-1);}
+.nav-item{display:flex; align-items:center; gap:var(--sp-3); padding:10px var(--sp-3); border-radius:var(--r-md); color:var(--text-muted); text-decoration:none; font-weight:500;}
+.nav-item svg{width:18px; height:18px; flex:0 0 auto;}
+.nav-item:hover{background:var(--surface-2); color:var(--text);}
+.nav-item.active{background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent);}
+.sidebar-foot{margin-top:auto; padding:var(--sp-2) var(--sp-3) 0;}
+.main{padding:var(--sp-6); overflow:auto;}
+.topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-4); margin-bottom:var(--sp-6); flex-wrap:wrap;}
+.topbar h1{font-family:var(--font-display); font-size:var(--fs-xl); font-weight:700; letter-spacing:-0.02em;}
+.topbar .sub{color:var(--text-muted); margin-top:3px; font-size:var(--fs-sm); text-transform:capitalize;}
+.status-cluster{display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap;}
+.badge{display:inline-flex; align-items:center; gap:var(--sp-2); padding:7px 12px; border-radius:var(--r-pill); font-size:var(--fs-sm); font-weight:500; background:var(--surface); border:1px solid var(--border); color:var(--text-muted);}
+.badge .dot{width:8px; height:8px; border-radius:50%; background:var(--text-faint);}
+.badge.live{color:var(--ok);}
+.badge.live .dot{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent);}
+.badge.stale{color:var(--warn);}
+.badge.stale .dot{background:var(--warn); box-shadow:none;}
+.btn-refresh{display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:var(--r-pill); background:var(--surface); border:1px solid var(--border); color:var(--text-muted); cursor:pointer; transition:.15s;}
+.btn-refresh:hover{color:var(--text); background:var(--surface-2);}
+.btn-refresh svg{width:17px; height:17px;}
+.btn-refresh.spin svg{animation:spin .8s linear infinite;}
+.schedule{display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-6); flex-wrap:wrap; min-height:34px;}
+.schedule .lbl{margin-right:var(--sp-2);}
+.time-pill{padding:6px 13px; border-radius:var(--r-pill); font-size:var(--fs-sm); font-weight:600; background:var(--surface); border:1px solid var(--border); color:var(--text-faint);}
+.time-pill.done{color:var(--text);}
+.time-pill.done::before{content:"✓ "; color:var(--ok);}
+.time-pill.latest{background:color-mix(in srgb,var(--accent) 16%,transparent); border-color:transparent; color:var(--accent);}
+.cards{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-5); margin-bottom:var(--sp-6);}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-5); box-shadow:var(--shadow-card);}
+.ccard-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--sp-5);}
+.ccode{display:flex; align-items:center; gap:var(--sp-3);}
+.flag{width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; background:var(--surface-2); color:var(--text); font-family:var(--font-display);}
+.ccode .pair{font-weight:600; font-size:var(--fs-base);}
+.ccode .name{font-size:var(--fs-xs); color:var(--text-muted);}
+.var{display:inline-flex; align-items:center; gap:4px; font-weight:600; font-size:var(--fs-xs); padding:4px 9px; border-radius:var(--r-pill); white-space:nowrap;}
+.var.up{color:var(--ok); background:color-mix(in srgb,var(--ok) 14%,transparent);}
+.var.down{color:var(--err); background:color-mix(in srgb,var(--err) 14%,transparent);}
+.var.flat{color:var(--text-muted); background:var(--surface-2);}
+.price{font-family:var(--font-display); font-size:var(--fs-2xl); font-weight:700; line-height:1;}
+.price .cur{font-size:var(--fs-md); color:var(--text-muted); font-weight:500; margin-right:4px;}
+.spark{margin-top:var(--sp-4); width:100%; height:38px; display:block;}
+.panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-card); overflow:hidden;}
+.panel-head{display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); padding:var(--sp-5) var(--sp-5) var(--sp-4); flex-wrap:wrap;}
+.panel-head h2{font-family:var(--font-display); font-size:var(--fs-lg); font-weight:700; letter-spacing:-0.01em;}
+.table-wrap{overflow-x:auto;}
+.table{width:100%; border-collapse:collapse; min-width:520px;}
+.table th{text-align:left; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); padding:var(--sp-3) var(--sp-5); border-bottom:1px solid var(--border); white-space:nowrap;}
+.table th.num,.table td.num{text-align:right; font-variant-numeric:tabular-nums;}
+.table td{padding:14px var(--sp-5); border-bottom:1px solid var(--border); font-size:var(--fs-sm); color:var(--text-muted);}
+.table td.num{color:var(--text);}
+.table tr:last-child td{border-bottom:none;}
+.table tr:hover td{background:var(--surface-2);}
+.table .hr{font-weight:600; color:var(--text);}
+.latest td{background:color-mix(in srgb,var(--accent) 7%,transparent);}
+.tag-latest{font-size:11px; font-weight:600; color:var(--accent); margin-left:7px; letter-spacing:.04em;}
+.footnote{margin-top:var(--sp-5); color:var(--text-faint); font-size:var(--fs-sm); display:flex; align-items:center; gap:var(--sp-2);}
+.footnote svg{width:15px; height:15px; flex:0 0 auto;}
+.state{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-3); text-align:center; padding:var(--sp-7) var(--sp-5); background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); color:var(--text-muted);}
+.state svg{width:40px; height:40px; color:var(--text-faint);}
+.state .state-title{font-family:var(--font-display); font-size:var(--fs-md); font-weight:600; color:var(--text);}
+.state .state-sub{font-size:var(--fs-sm); color:var(--text-muted); max-width:380px;}
+#state-error svg{color:var(--err);}
+.spinner{width:34px; height:34px; border-radius:50%; border:3px solid var(--surface-2); border-top-color:var(--accent); animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media (max-width:920px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{flex-direction:row; align-items:center; overflow-x:auto; gap:var(--sp-2); padding:var(--sp-3) var(--sp-4); border-right:none; border-bottom:1px solid var(--border);}
+  .brand{margin-bottom:0; white-space:nowrap;}
+  .nav-section,.sidebar-foot{display:none;}
+  .nav-item{white-space:nowrap;}
+  .cards{grid-template-columns:repeat(2,1fr);}
+  .main{padding:var(--sp-4);}
+}
+@media (max-width:560px){ .cards{grid-template-columns:1fr;} }
+</style>
 </head>
 <body>
 <div class="layout">
@@ -54,7 +152,6 @@
       <span class="label lbl">Programação do dia</span>
     </div>
 
-    <!-- estados -->
     <div class="state" id="state-loading">
       <div class="spinner"></div>
       <p>Carregando cotações…</p>
@@ -72,10 +169,8 @@
       <p class="state-sub">Verifique a conexão e tente atualizar.</p>
     </div>
 
-    <!-- conteúdo -->
     <div id="content" hidden>
       <div class="cards" id="cards"></div>
-
       <div class="panel">
         <div class="panel-head">
           <h2>Cotações por horário</h2>
@@ -88,7 +183,6 @@
           </table>
         </div>
       </div>
-
       <div class="footnote">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         <span id="footnote-text">Atualizações automáticas via n8n</span>
@@ -99,7 +193,162 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/js/supabase.js"></script>
-<script src="assets/js/app.js"></script>
+<script>
+// ================== TROQUE SÓ ESTAS 2 LINHAS ==================
+// (Supabase > Project Settings > API)
+const SUPABASE_URL  = "https://SEU-PROJETO.supabase.co";
+const SUPABASE_ANON = "COLE_AQUI_SUA_ANON_KEY";
+// =============================================================
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const CURRENCIES = [
+  { code: "USD", symbol: "$",  name: "Dólar americano" },
+  { code: "EUR", symbol: "€",  name: "Euro" },
+  { code: "GBP", symbol: "£",  name: "Libra esterlina" },
+  { code: "CHF", symbol: "Fr", name: "Franco suíço" },
+];
+const TARGETS = [6, 8, 9, 10, 12];
+
+const $ = (id) => document.getElementById(id);
+const fmtNum  = (n) => Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtTime = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+function showState(which) {
+  ["state-loading", "state-empty", "state-error", "content"].forEach((id) => { $(id).hidden = id !== which; });
+}
+function startOfTodayISO() { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
+
+async function load() {
+  $("sub-date").textContent =
+    new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) +
+    " · valores em Real (BRL)";
+  try {
+    const { data, error } = await supabaseClient
+      .from("rate_snapshots")
+      .select("captured_at, rates")
+      .gte("captured_at", startOfTodayISO())
+      .order("captured_at", { ascending: true });
+    if (error) throw error;
+    if (!data || data.length === 0) { renderSchedule([]); setConnBadge(null); showState("state-empty"); return; }
+    render(data);
+    showState("content");
+  } catch (e) {
+    console.error("Erro ao carregar cotações:", e?.message || e);
+    showState("state-error");
+  }
+}
+
+function render(snaps) {
+  setConnBadge(snaps);
+  renderSchedule(snaps);
+  renderCards(snaps);
+  renderTable(snaps);
+  const last = snaps[snaps.length - 1];
+  $("badge-last").textContent = "Última atualização · " + fmtTime(last.captured_at);
+  $("panel-count").textContent = snaps.length + (snaps.length === 1 ? " envio recebido hoje" : " envios recebidos hoje");
+  $("footnote-text").textContent = "Atualizações automáticas via n8n nos horários programados";
+}
+
+function setConnBadge(snaps) {
+  const badge = $("badge-conn");
+  if (!snaps || snaps.length === 0) {
+    badge.className = "badge stale"; badge.innerHTML = '<span class="dot"></span> aguardando n8n'; return;
+  }
+  const last = new Date(snaps[snaps.length - 1].captured_at);
+  const horas = (Date.now() - last.getTime()) / 36e5;
+  if (horas <= 6) { badge.className = "badge live"; badge.innerHTML = '<span class="dot"></span> n8n conectado'; }
+  else { badge.className = "badge stale"; badge.innerHTML = '<span class="dot"></span> sem envio recente'; }
+}
+
+function renderSchedule(snaps) {
+  const el = $("schedule");
+  el.innerHTML = '<span class="label lbl">Programação do dia</span>';
+  const horas = snaps.map((s) => new Date(s.captured_at).getHours());
+  const maxHora = horas.length ? Math.max(...horas) : -1;
+  const ultimoFeito = Math.max(...TARGETS.filter((t) => t <= maxHora), -1);
+  TARGETS.forEach((t) => {
+    const span = document.createElement("span");
+    span.textContent = String(t).padStart(2, "0") + ":00";
+    if (t === ultimoFeito) span.className = "time-pill latest";
+    else if (t <= maxHora) span.className = "time-pill done";
+    else span.className = "time-pill";
+    el.appendChild(span);
+  });
+}
+
+function renderCards(snaps) {
+  const primeiro = snaps[0].rates;
+  const ultimo = snaps[snaps.length - 1].rates;
+  const cards = $("cards");
+  cards.innerHTML = "";
+  CURRENCIES.forEach((c) => {
+    const atual = Number(ultimo[c.code]);
+    if (!Number.isFinite(atual)) return;
+    const base = Number(primeiro[c.code]);
+    let pct = 0;
+    if (Number.isFinite(base) && base !== 0) pct = ((atual - base) / base) * 100;
+    let varClass = "flat", arrow = "■";
+    if (pct > 0.001) { varClass = "up"; arrow = "▲"; }
+    else if (pct < -0.001) { varClass = "down"; arrow = "▼"; }
+    const serie = snaps.map((s) => Number(s.rates[c.code])).filter(Number.isFinite);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<div class="ccard-head">' +
+        '<div class="ccode"><span class="flag">' + c.symbol + '</span>' +
+        '<div><div class="pair">' + c.code + ' / BRL</div><div class="name">' + c.name + '</div></div></div>' +
+        '<span class="var ' + varClass + '">' + arrow + ' ' + Math.abs(pct).toFixed(2) + '%</span>' +
+      '</div>' +
+      '<div class="price"><span class="cur">R$</span>' + fmtNum(atual) + '</div>' +
+      '<svg class="spark" viewBox="0 0 200 38" preserveAspectRatio="none" fill="none">' + sparkline(serie, pct >= 0) + '</svg>';
+    cards.appendChild(card);
+  });
+}
+
+function sparkline(serie, up) {
+  const w = 200, h = 38, pad = 4;
+  const color = up ? "#3FB950" : "#F85149";
+  if (serie.length < 2) {
+    const y = h / 2;
+    return '<polyline points="0,' + y + ' ' + w + ',' + y + '" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" fill="none"/>';
+  }
+  const min = Math.min(...serie), max = Math.max(...serie), range = max - min || 1;
+  const pts = serie.map((v, i) => {
+    const x = (i / (serie.length - 1)) * w;
+    const y = pad + (1 - (v - min) / range) * (h - 2 * pad);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+  return '<polyline points="' + pts + '" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+}
+
+function renderTable(snaps) {
+  $("table-head").innerHTML =
+    "<tr><th>Horário</th>" + CURRENCIES.map((c) => '<th class="num">' + c.code + "</th>").join("") + "</tr>";
+  const body = $("table-body");
+  body.innerHTML = "";
+  snaps.forEach((s, i) => {
+    const ultima = i === snaps.length - 1;
+    const cols = CURRENCIES.map((c) => {
+      const v = Number(s.rates[c.code]);
+      return '<td class="num">' + (Number.isFinite(v) ? fmtNum(v) : "—") + "</td>";
+    }).join("");
+    const tag = ultima ? '<span class="tag-latest">MAIS RECENTE</span>' : "";
+    const tr = document.createElement("tr");
+    if (ultima) tr.className = "latest";
+    tr.innerHTML = '<td class="hr">' + fmtTime(s.captured_at) + tag + "</td>" + cols;
+    body.appendChild(tr);
+  });
+}
+
+$("btn-refresh").addEventListener("click", async () => {
+  const btn = $("btn-refresh");
+  btn.classList.add("spin");
+  showState("state-loading");
+  await load();
+  btn.classList.remove("spin");
+});
+
+load();
+</script>
 </body>
 </html>
